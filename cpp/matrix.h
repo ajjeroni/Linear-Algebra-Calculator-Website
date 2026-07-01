@@ -53,6 +53,12 @@ class Matrix {
 
   // Get method for numel_, since it is private
   size_t GetNumEl() const;
+  size_t GetRows() const;
+  size_t GetCols() const;
+  T GetElement(size_t row, size_t col) const;
+
+  /*---------------- Set Methods -------------------*/
+  void SetElement(size_t row, size_t col, T value);
 
   /* Operator Overloaders */
   // best practice to use return by reference?
@@ -103,44 +109,6 @@ class Matrix {
   Matrix MatrixTranspose() const;
   // Element-wise function application method
   Matrix MatrixFunction(const std::function<T(const T&)>& function) const;
-};
-
-// A templated utility struct that provides static factory functions for
-// Matrix<T>
-template <typename T>
-struct mtx {
-  // structs are public my default
- private:
-  // create a random element generator, make sure it is only created once
-  // similar to singleton pattern
-  static std::mt19937& GetGenerator() {
-    static std::random_device rd{};
-    static std::mt19937 gen{rd()};
-
-    return gen;
-  }
-
- public:
-  // this method creates and return a matrix filled with random elements
-  // using the generator
-  static Matrix<T> randn(size_t rows, size_t cols) {
-    Matrix<T> M(rows, cols);
-
-    T N(M.GetNumEl());
-    // T stdev{static_cast<float>(1) / sqrt(N)};
-    T stdev{static_cast<T>(1) / std::sqrt(N)};
-    std::normal_distribution<T> d{0, stdev};
-
-    auto& gen = GetGenerator();
-
-    for (size_t r = 0; r < rows; ++r) {
-      for (size_t c = 0; c < cols; ++c) {
-        M(r, c) = d(gen);
-      }
-    }
-
-    return M;
-  }
 };
 
 #include "matrix.tpp"

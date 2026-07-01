@@ -7,7 +7,29 @@
 /*------------------- Get Methods -----------------------------*/
 template <typename T>
 size_t Matrix<T>::GetNumEl() const {
-  return (*this).numel_;
+  return numel_;
+}
+
+template <typename T>
+size_t Matrix<T>::GetCols() const {
+    return cols_;
+}
+
+template <typename T>
+size_t Matrix<T>::GetRows() const {
+    return rows_;
+}
+
+template <typename T>
+T Matrix<T>::GetElement(size_t row, size_t col) const {
+    assert()
+    return (*this)(row, col);
+}
+
+/*------------------- Set Methods -----------------------------*/
+template <typename T>
+void Matrix<T>::SetElement(size_t row, size_t col, T value) {
+    (*this)(row, col) = value;
 }
 
 /*------------------- Operator Overloaders --------------------*/
