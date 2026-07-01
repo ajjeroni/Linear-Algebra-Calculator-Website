@@ -22,13 +22,14 @@ size_t Matrix<T>::GetRows() const {
 
 template <typename T>
 T Matrix<T>::GetElement(size_t row, size_t col) const {
-    assert()
+    assert(row < rows_ && col < cols_);
     return (*this)(row, col);
 }
 
 /*------------------- Set Methods -----------------------------*/
 template <typename T>
 void Matrix<T>::SetElement(size_t row, size_t col, T value) {
+    assert(row < rows_ && col < cols_);
     (*this)(row, col) = value;
 }
 
