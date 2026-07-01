@@ -1,3 +1,4 @@
+#include <cstdio>
 #include <emscripten/bind.h>
 #include "matrix.h"
 
