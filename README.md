@@ -1,58 +1,63 @@
 # Linear Algebra Calculator Website
 
-A mini linear algebra project built with C++ and WebAssembly, designed to bring matrix operations to the browser.
+A browser-based matrix algebra calculator built with React, JavaScript, and a C++/WebAssembly backend. The app lets you enter matrices, choose dimensions, and evaluate algebraic expressions such as A + B, 2A - 3B, or -A + B.
 
 ## Overview
 
-This project uses a custom C++ `Matrix` template class and exposes matrix functionality to JavaScript through WebAssembly. The goal is to create a fast, browser-based linear algebra calculator while practicing C++, WebAssembly, and modern frontend development.
+This project combines a modern React interface with matrix validation and expression evaluation logic in JavaScript. It also includes a WebAssembly-enabled matrix layer for future performance-focused operations while keeping the UI simple and interactive.
 
-## Features
+## What the app can do
 
-* Custom templated `Matrix<T>` class
-* Matrix creation with rows and columns
-* Get and set matrix elements
-* Matrix addition and subtraction
-* Matrix multiplication
-* Element-wise multiplication
-* Scalar multiplication
-* Matrix transposition
-* Element-wise function application
-* WebAssembly integration for use in JavaScript/React
+- Create between 2 and 5 matrices
+- Set matrix dimensions between 1 and 5 rows/columns
+- Fill in matrix values directly in the browser
+- Evaluate expressions using:
+  - addition and subtraction
+  - scalar multiplication
+  - unary negation
+  - parentheses
+- Validate required cells, invalid values, and incompatible dimensions
+- Display the resulting matrix in the UI
 
-## Tech Stack
+## Example expressions
 
-* C++
-* WebAssembly
-* Emscripten
-* JavaScript
-* React
+- A + B
+- 2A - 3B
+- -A + B
+- (A + B) * 2
 
-## Project Structure
+## Tech stack
+
+- React
+- Vite
+- JavaScript
+- C++
+- WebAssembly
+- Vitest
+- ESLint
+
+## Project structure
 
 ```txt
 .
+├── cpp/
+│   ├── bindings.cpp
+│   ├── matrix.h
+│   └── matrix.tpp
+├── public/
 ├── src/
-│   ├── wasm/
-│   │   ├── matrix.js
-│   │   └── matrix.wasm
-│   └── index.js
-├── matrix.h
-├── matrix.tpp
+│   ├── App.jsx
+│   ├── App.css
+│   ├── matrixUtils.js
+│   ├── matrixUtils.test.js
+│   └── wasm/
+│       └── matrix.js
+├── index.html
+├── package.json
 └── README.md
 ```
 
-## Build
-
-Compile the C++ matrix code to WebAssembly using Emscripten:
-
-```bash
-em++ bindings.cpp -o src/wasm/matrix.js \
-  --bind \
-  -s MODULARIZE=1 \
-  -s EXPORT_ES6=1
-```
-
-## Run
+## Development
 
 Install dependencies:
 
@@ -60,8 +65,37 @@ Install dependencies:
 npm install
 ```
 
-Start the project:
+Start the development server:
 
 ```bash
 npm run dev
+```
+
+Build the app for production:
+
+```bash
+npm run build
+```
+
+Run tests:
+
+```bash
+npm test
+```
+
+Lint the project:
+
+```bash
+npm run lint
+```
+
+## WebAssembly build
+
+If you want to rebuild the C++/WASM module, use Emscripten:
+
+```bash
+em++ cpp/bindings.cpp -o src/wasm/matrix.js \
+  --bind \
+  -s MODULARIZE=1 \
+  -s EXPORT_ES6=1
 ```
