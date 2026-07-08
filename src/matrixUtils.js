@@ -1,6 +1,6 @@
 export const MIN_DIMENSION = 1;
 export const MAX_DIMENSION = 5;
-export const MIN_MATRICES = 1;
+export const MIN_MATRICES = 2;
 export const MAX_MATRICES = 5;
 
 export function createDefaultMatrices(count, rows, cols) {
@@ -26,7 +26,20 @@ export function buildMatricesWithDimensions(count, rows, cols, previous = []) {
   );
 }
 
-export function validateMatrices(rows, cols, matrices) {
+function getReferencedMatrixIndices(expression) {
+  if (typeof expression !== "string") {
+    return [];
+  }
+
+  const labels = expression.match(/[A-Za-z]+/g) ?? [];
+  const labelOrder = ["A", "B", "C", "D", "E"];
+
+  return labels
+    .map((label) => labelOrder.indexOf(label.toUpperCase()))
+    .filter((index) => index !== -1);
+}
+
+export function validateMatrices(rows, cols, matrices, expression = "") {
   const errors = [];
 
   if (!Number.isInteger(rows) || rows < MIN_DIMENSION || rows > MAX_DIMENSION) {
@@ -52,7 +65,15 @@ export function validateMatrices(rows, cols, matrices) {
     );
   }
 
-  matrices.forEach((matrix, matrixIndex) => {
+  const matrixIndicesToValidate = getReferencedMatrixIndices(expression);
+  const matricesToValidate =
+    matrixIndicesToValidate.length > 0
+      ? matrixIndicesToValidate
+      : matrices.map((_, index) => index);
+
+  matricesToValidate.forEach((matrixIndex) => {
+    const matrix = matrices[matrixIndex];
+
     if (!Array.isArray(matrix)) {
       errors.push(`Matrix ${matrixIndex + 1} must be an array.`);
       return;
@@ -93,6 +114,320 @@ export function validateMatrices(rows, cols, matrices) {
   });
 
   return { valid: errors.length === 0, errors };
+}
+
+function normalizeMatrix(matrix) {
+  return matrix.map((row) => row.map((value) => Number(value)));
+}
+
+function getMatrixDimensions(matrix) {
+  return {
+    rows: matrix.length,
+    cols: matrix[0]?.length ?? 0,
+  };
+}
+
+function ensureSameDimensions(leftMatrix, rightMatrix) {
+  const leftDimensions = getMatrixDimensions(leftMatrix);
+  const rightDimensions = getMatrixDimensions(rightMatrix);
+
+  if (
+    leftDimensions.rows !== rightDimensions.rows ||
+    leftDimensions.cols !== rightDimensions.cols
+  ) {
+    return {
+      valid: false,
+      error: "The matrices must have the same dimensions for addition or subtraction.",
+    };
+  }
+
+  return { valid: true };
+}
+
+export function addMatrices(leftMatrix, rightMatrix) {
+  const dimensionCheck = ensureSameDimensions(leftMatrix, rightMatrix);
+
+  if (!dimensionCheck.valid) {
+    throw new Error(dimensionCheck.error);
+  }
+
+  return leftMatrix.map((row, rowIndex) =>
+    row.map((value, colIndex) => value + rightMatrix[rowIndex][colIndex])
+  );
+}
+
+export function subtractMatrices(leftMatrix, rightMatrix) {
+  const dimensionCheck = ensureSameDimensions(leftMatrix, rightMatrix);
+
+  if (!dimensionCheck.valid) {
+    throw new Error(dimensionCheck.error);
+  }
+
+  return leftMatrix.map((row, rowIndex) =>
+    row.map((value, colIndex) => value - rightMatrix[rowIndex][colIndex])
+  );
+}
+
+export function multiplyMatrixByScalar(matrix, scalar) {
+  return matrix.map((row) => row.map((value) => value * scalar));
+}
+
+function tokenizeMatrixExpression(expression) {
+  const tokens = [];
+  let index = 0;
+
+  while (index < expression.length) {
+    const character = expression[index];
+
+    if (/\s/.test(character)) {
+      index += 1;
+      continue;
+    }
+
+    if (["+", "-", "*", "(", ")"].includes(character)) {
+      tokens.push(character);
+      index += 1;
+      continue;
+    }
+
+    if (/\d|\./.test(character)) {
+      let number = "";
+      while (index < expression.length && /\d|\./.test(expression[index])) {
+        number += expression[index];
+        index += 1;
+      }
+
+      tokens.push(number);
+      continue;
+    }
+
+    if (/[A-Za-z]/.test(character)) {
+      let label = "";
+      while (index < expression.length && /[A-Za-z]/.test(expression[index])) {
+        label += expression[index].toUpperCase();
+        index += 1;
+      }
+
+      tokens.push(label);
+      continue;
+    }
+
+    throw new Error(`Unexpected character "${character}".`);
+  }
+
+  return tokens;
+}
+
+class MatrixExpressionParser {
+  constructor(tokens) {
+    this.tokens = tokens;
+    this.index = 0;
+  }
+
+  peek() {
+    return this.tokens[this.index];
+  }
+
+  consume(expectedToken = null) {
+    const currentToken = this.peek();
+
+    if (expectedToken && currentToken !== expectedToken) {
+      throw new Error(`Expected ${expectedToken}, received ${currentToken ?? "end of expression"}.`);
+    }
+
+    this.index += 1;
+    return currentToken;
+  }
+
+  parse() {
+    const node = this.parseExpression();
+
+    if (this.peek() !== undefined) {
+      throw new Error(`Unexpected token "${this.peek()}".`);
+    }
+
+    return node;
+  }
+
+  parseExpression() {
+    let left = this.parseTerm();
+
+    while (this.peek() === "+" || this.peek() === "-") {
+      const operator = this.consume();
+      const right = this.parseTerm();
+      left = { type: "binary", operator, left, right };
+    }
+
+    return left;
+  }
+
+  parseTerm() {
+    let left = this.parseFactor();
+
+    while (true) {
+      const token = this.peek();
+
+      if (token === "*") {
+        this.consume("*");
+        const right = this.parseFactor();
+        left = { type: "binary", operator: "*", left, right };
+        continue;
+      }
+
+      if (token && token !== "+" && token !== "-" && token !== ")") {
+        const right = this.parseFactor();
+        left = { type: "binary", operator: "*", left, right };
+        continue;
+      }
+
+      break;
+    }
+
+    return left;
+  }
+
+  parseFactor() {
+    const token = this.peek();
+
+    if (token === "+") {
+      this.consume("+");
+      return this.parseFactor();
+    }
+
+    if (token === "-") {
+      this.consume("-");
+      return { type: "unary", operator: "-", expression: this.parseFactor() };
+    }
+
+    if (token === "(") {
+      this.consume("(");
+      const expression = this.parseExpression();
+      this.consume(")");
+      return expression;
+    }
+
+    if (token !== undefined && /^\d+(?:\.\d+)?$/.test(String(token))) {
+      this.consume();
+      return { type: "number", value: Number(token) };
+    }
+
+    if (token !== undefined && /^[A-Z]+$/.test(String(token))) {
+      this.consume();
+      return { type: "matrix", label: String(token) };
+    }
+
+    throw new Error(`Unexpected token "${token ?? "end of expression"}".`);
+  }
+}
+
+function resolveOperandValue(node, matricesByLabel) {
+  if (node.type === "number") {
+    return { value: node.value, isMatrix: false };
+  }
+
+  if (node.type === "matrix") {
+    const matrix = matricesByLabel[node.label];
+
+    if (!matrix) {
+      throw new Error(`Matrix ${node.label} is not defined.`);
+    }
+
+    return { value: normalizeMatrix(matrix), isMatrix: true };
+  }
+
+  throw new Error("Unsupported expression node.");
+}
+
+function evaluateExpressionNode(node, matricesByLabel) {
+  if (node.type === "number") {
+    return { value: node.value, isMatrix: false };
+  }
+
+  if (node.type === "matrix") {
+    const matrix = matricesByLabel[node.label];
+
+    if (!matrix) {
+      throw new Error(`Matrix ${node.label} is not defined.`);
+    }
+
+    return { value: normalizeMatrix(matrix), isMatrix: true };
+  }
+
+  if (node.type === "unary") {
+    const operand = evaluateExpressionNode(node.expression, matricesByLabel);
+
+    if (operand.isMatrix) {
+      return { value: multiplyMatrixByScalar(operand.value, -1), isMatrix: true };
+    }
+
+    return { value: -operand.value, isMatrix: false };
+  }
+
+  if (node.type === "binary") {
+    const left = evaluateExpressionNode(node.left, matricesByLabel);
+    const right = evaluateExpressionNode(node.right, matricesByLabel);
+
+    if (node.operator === "*") {
+      if (left.isMatrix && right.isMatrix) {
+        throw new Error("Matrix-matrix multiplication is not supported yet.");
+      }
+
+      if (left.isMatrix) {
+        return { value: multiplyMatrixByScalar(left.value, right.value), isMatrix: true };
+      }
+
+      if (right.isMatrix) {
+        return { value: multiplyMatrixByScalar(right.value, left.value), isMatrix: true };
+      }
+
+      return { value: left.value * right.value, isMatrix: false };
+    }
+
+    if (node.operator === "+") {
+      if (!left.isMatrix || !right.isMatrix) {
+        throw new Error("Addition only supports matrix operands.");
+      }
+
+      return { value: addMatrices(left.value, right.value), isMatrix: true };
+    }
+
+    if (node.operator === "-") {
+      if (!left.isMatrix || !right.isMatrix) {
+        throw new Error("Subtraction only supports matrix operands.");
+      }
+
+      return { value: subtractMatrices(left.value, right.value), isMatrix: true };
+    }
+  }
+
+  throw new Error("Unsupported expression.");
+}
+
+export function evaluateMatrixExpression(expression, matricesByLabel = {}) {
+  if (typeof expression !== "string" || expression.trim() === "") {
+    return { valid: false, errors: ["Please enter an algebra expression."], result: null };
+  }
+
+  const trimmedExpression = expression.trim().replace(/\s+/g, " ");
+
+  try {
+    const tokens = tokenizeMatrixExpression(trimmedExpression);
+    const parser = new MatrixExpressionParser(tokens);
+    const parsedExpression = parser.parse();
+    const result = evaluateExpressionNode(parsedExpression, matricesByLabel);
+
+    if (!result.isMatrix) {
+      return { valid: false, errors: ["The expression must resolve to a matrix."], result: null };
+    }
+
+    return { valid: true, errors: [], result: result.value };
+  } catch (error) {
+    return {
+      valid: false,
+      errors: [error.message || "Unable to evaluate the matrix expression."],
+      result: null,
+    };
+  }
 }
 
 export function sumMatrices(matrices, matrixModule = null) {

@@ -9,7 +9,7 @@ import {
   buildMatricesWithDimensions,
   createDefaultMatrices,
   validateMatrices,
-  sumMatrices,
+  evaluateMatrixExpression,
 } from "./matrixUtils";
 
 function App() {
@@ -21,6 +21,7 @@ function App() {
   const [matrices, setMatrices] = useState(() => createDefaultMatrices(2, 2, 2));
   const [errors, setErrors] = useState([]);
   const [result, setResult] = useState(null);
+  const [expression, setExpression] = useState("A + B");
 
   useEffect(() => {
     createMatrixModule()
@@ -38,6 +39,16 @@ function App() {
 
   const clearResult = () => {
     setResult(null);
+  };
+
+  const getDisplayLabel = (matrixIndex) => {
+    const labels = ["Matrix A", "Matrix B", "Matrix C", "Matrix D", "Matrix E"];
+    return labels[matrixIndex] ?? `Matrix ${matrixIndex + 1}`;
+  };
+
+  const getExpressionLabel = (matrixIndex) => {
+    const labels = ["A", "B", "C", "D", "E"];
+    return labels[matrixIndex] ?? `M${matrixIndex + 1}`;
   };
 
   const handleRowsChange = (event) => {
@@ -99,7 +110,7 @@ function App() {
 
   const handleSubmit = (event) => {
     event.preventDefault();
-    const validation = validateMatrices(rows, cols, matrices);
+    const validation = validateMatrices(rows, cols, matrices, expression);
 
     if (!validation.valid) {
       setErrors(validation.errors);
@@ -107,27 +118,27 @@ function App() {
       return;
     }
 
-    if (moduleError) {
-      setErrors([`WASM module failed to load: ${moduleError}`]);
-      setResult(null);
-      return;
-    }
+    const matricesByLabel = Object.fromEntries(
+      matrices.map((_, index) => [getExpressionLabel(index), matrices[index]])
+    );
 
-    if (!matrixModule) {
-      setErrors(["WASM module is still loading. Please wait and try again."]);
+    const expressionResult = evaluateMatrixExpression(expression, matricesByLabel);
+
+    if (!expressionResult.valid) {
+      setErrors(expressionResult.errors);
       setResult(null);
       return;
     }
 
     setErrors([]);
-    setResult(sumMatrices(matrices, matrixModule));
+    setResult(expressionResult.result);
   };
 
   return (
     <main className="matrix-app">
-      <h1>Matrix Addition</h1>
+      <h1>Matrix Algebra Calculator</h1>
       <p className="intro">
-        Add between {MIN_MATRICES} and {MAX_MATRICES} matrices, with dimensions from {MIN_DIMENSION} to {MAX_DIMENSION}.
+        Enter between {MIN_MATRICES} and {MAX_MATRICES} matrices, then evaluate expressions such as A + B, 2A - 3B, or 2 * A + B. Dimensions must stay between {MIN_DIMENSION} and {MAX_DIMENSION}.
       </p>
 
       <div className="status-line">
@@ -201,7 +212,7 @@ function App() {
         <div className="matrices-grid">
           {matrices.map((matrix, matrixIndex) => (
             <section key={matrixIndex} className="matrix-card">
-              <h2>Matrix {matrixIndex + 1}</h2>
+              <h2>{getDisplayLabel(matrixIndex)}</h2>
               <div className="matrix-table">
                 {matrix.map((row, rowIndex) => (
                   <div className="matrix-row" key={rowIndex}>
@@ -231,8 +242,23 @@ function App() {
           ))}
         </div>
 
+        <label className="expression-field">
+          Algebra Expression
+          <input
+            type="text"
+            value={expression}
+            onChange={(event) => {
+              setExpression(event.target.value);
+              clearResult();
+            }}
+            placeholder="A + B"
+            className="expression-input"
+            aria-label="Matrix algebra expression"
+          />
+        </label>
+
         <button type="submit" className="primary-button">
-          Compute Sum
+          Evaluate Expression
         </button>
       </form>
 
@@ -251,7 +277,7 @@ function App() {
             ))}
           </div>
         ) : (
-          <p>Fill every cell and press Compute Sum to see the result.</p>
+          <p>Fill every cell and enter an algebra expression to see the result.</p>
         )}
       </section>
     </main>

@@ -249,6 +249,26 @@
   color: #000;
 }
 
+.expression-field {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font-weight: 500;
+  color: var(--text-h);
+  max-width: 360px;
+}
+
+.expression-input {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 12px 14px;
+  background: white;
+  font-size: 16px;
+  color: #000;
+}
+
 .matrix-count-row {
   justify-content: flex-start;
   align-items: center;

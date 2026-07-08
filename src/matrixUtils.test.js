@@ -7,6 +7,7 @@ import {
   createDefaultMatrices,
   validateMatrices,
   sumMatrices,
+  evaluateMatrixExpression,
 } from "./matrixUtils";
 
 describe("matrixUtils", () => {
@@ -99,6 +100,91 @@ describe("matrixUtils", () => {
     expect(createCalls).toBe(2);
   });
 
+  it("evaluates matrix algebra expressions with scalar multiplication", () => {
+    const matricesByLabel = {
+      A: [
+        ["1", "2"],
+        ["3", "4"],
+      ],
+      B: [
+        ["5", "6"],
+        ["7", "8"],
+      ],
+    };
+
+    const result = evaluateMatrixExpression("2A - 3B", matricesByLabel);
+
+    expect(result.valid).toBe(true);
+    expect(result.errors).toHaveLength(0);
+    expect(result.result).toEqual([
+      [-13, -14],
+      [-15, -16],
+    ]);
+  });
+
+  it("supports unary negation for matrices (e.g. -A + B)", () => {
+    const matricesByLabel = {
+      A: [
+        ["1", "2"],
+        ["3", "4"],
+      ],
+      B: [
+        ["5", "6"],
+        ["7", "8"],
+      ],
+    };
+
+    const result = evaluateMatrixExpression("-A + B", matricesByLabel);
+
+    expect(result.valid).toBe(true);
+    expect(result.errors).toHaveLength(0);
+    expect(result.result).toEqual([
+      [4, 4],
+      [4, 4],
+    ]);
+  });
+
+  it("supports nested unary negation (e.g. A - -B)", () => {
+    const matricesByLabel = {
+      A: [
+        ["1", "2"],
+        ["3", "4"],
+      ],
+      B: [
+        ["5", "6"],
+        ["7", "8"],
+      ],
+    };
+
+    const result = evaluateMatrixExpression("A - -B", matricesByLabel);
+
+    expect(result.valid).toBe(true);
+    expect(result.errors).toHaveLength(0);
+    expect(result.result).toEqual([
+      [6, 8],
+      [10, 12],
+    ]);
+  });
+
+  it("rejects expressions that combine mismatched dimensions", () => {
+    const matricesByLabel = {
+      A: [["1", "2"]],
+      B: [
+        ["3", "4"],
+        ["5", "6"],
+      ],
+    };
+
+    const result = evaluateMatrixExpression("A + B", matricesByLabel);
+
+    expect(result.valid).toBe(false);
+    expect(result.errors).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining("same dimensions"),
+      ])
+    );
+  });
+
   it("rejects invalid dimension values", () => {
     const matrices = createDefaultMatrices(2, 0, 2);
 
@@ -123,6 +209,50 @@ describe("matrixUtils", () => {
         expect.stringContaining(`You must use between ${MIN_MATRICES} and ${MAX_MATRICES} matrices.`),
       ])
     );
+  });
+
+  it("validates only matrices referenced by the expression", () => {
+    const matrices = [
+      [
+        ["1", "2"],
+        ["3", "4"],
+      ],
+      [
+        ["5", "6"],
+        ["7", "8"],
+      ],
+      [
+        ["", ""],
+        ["", ""],
+      ],
+    ];
+
+    const validation = validateMatrices(2, 2, matrices, "A + B");
+
+    expect(validation.valid).toBe(true);
+    expect(validation.errors).toHaveLength(0);
+  });
+
+  it("treats lowercase labels as references during validation", () => {
+    const matrices = [
+      [
+        ["1", "2"],
+        ["3", "4"],
+      ],
+      [
+        ["5", "6"],
+        ["7", "8"],
+      ],
+      [
+        ["", ""],
+        ["", ""],
+      ],
+    ];
+
+    const validation = validateMatrices(2, 2, matrices, "a + b");
+
+    expect(validation.valid).toBe(true);
+    expect(validation.errors).toHaveLength(0);
   });
 
   it("rejects matrix shape mismatch", () => {
