@@ -138,7 +138,7 @@ function App() {
     <main className="matrix-app">
       <h1>Matrix Algebra Calculator</h1>
       <p className="intro">
-        Enter between {MIN_MATRICES} and {MAX_MATRICES} matrices, then evaluate expressions such as A + B, 2A - 3B, or 2 * A + B. Dimensions must stay between {MIN_DIMENSION} and {MAX_DIMENSION}.
+        Enter between {MIN_MATRICES} and {MAX_MATRICES} matrices, then evaluate expressions such as A + B, 2A - 3B, A * B, or 2 * A * B. Dimensions must stay between {MIN_DIMENSION} and {MAX_DIMENSION}.
       </p>
 
       <div className="status-line">

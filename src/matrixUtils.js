@@ -144,6 +144,20 @@ function ensureSameDimensions(leftMatrix, rightMatrix) {
   return { valid: true };
 }
 
+function ensureCompatibleDimensions(leftMatrix, rightMatrix) {
+  const leftDimensions = getMatrixDimensions(leftMatrix);
+  const rightDimensions = getMatrixDimensions(rightMatrix);
+
+  if (leftDimensions.cols !== rightDimensions.rows) {
+    return {
+      valid: false,
+      error: "The left matrix column count must equal the right matrix row count for multiplication.",
+    };
+  }
+
+  return { valid: true };
+}
+
 export function addMatrices(leftMatrix, rightMatrix) {
   const dimensionCheck = ensureSameDimensions(leftMatrix, rightMatrix);
 
@@ -165,6 +179,31 @@ export function subtractMatrices(leftMatrix, rightMatrix) {
 
   return leftMatrix.map((row, rowIndex) =>
     row.map((value, colIndex) => value - rightMatrix[rowIndex][colIndex])
+  );
+}
+
+export function multiplyMatrices(leftMatrix, rightMatrix) {
+  const dimensionCheck = ensureCompatibleDimensions(leftMatrix, rightMatrix);
+
+  if (!dimensionCheck.valid) {
+    throw new Error(dimensionCheck.error);
+  }
+
+  const leftDimensions = getMatrixDimensions(leftMatrix);
+  const rightDimensions = getMatrixDimensions(rightMatrix);
+  const resultRows = leftDimensions.rows;
+  const resultCols = rightDimensions.cols;
+
+  return Array.from({ length: resultRows }, (_, rowIndex) =>
+    Array.from({ length: resultCols }, (_, colIndex) => {
+      let sum = 0;
+
+      for (let innerIndex = 0; innerIndex < leftDimensions.cols; innerIndex += 1) {
+        sum += leftMatrix[rowIndex][innerIndex] * rightMatrix[innerIndex][colIndex];
+      }
+
+      return sum;
+    })
   );
 }
 
@@ -320,24 +359,6 @@ class MatrixExpressionParser {
   }
 }
 
-function resolveOperandValue(node, matricesByLabel) {
-  if (node.type === "number") {
-    return { value: node.value, isMatrix: false };
-  }
-
-  if (node.type === "matrix") {
-    const matrix = matricesByLabel[node.label];
-
-    if (!matrix) {
-      throw new Error(`Matrix ${node.label} is not defined.`);
-    }
-
-    return { value: normalizeMatrix(matrix), isMatrix: true };
-  }
-
-  throw new Error("Unsupported expression node.");
-}
-
 function evaluateExpressionNode(node, matricesByLabel) {
   if (node.type === "number") {
     return { value: node.value, isMatrix: false };
@@ -369,7 +390,7 @@ function evaluateExpressionNode(node, matricesByLabel) {
 
     if (node.operator === "*") {
       if (left.isMatrix && right.isMatrix) {
-        throw new Error("Matrix-matrix multiplication is not supported yet.");
+        return { value: multiplyMatrices(left.value, right.value), isMatrix: true };
       }
 
       if (left.isMatrix) {

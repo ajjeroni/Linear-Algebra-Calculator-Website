@@ -144,6 +144,41 @@ describe("matrixUtils", () => {
     ]);
   });
 
+  it("evaluates matrix multiplication expressions", () => {
+    const matricesByLabel = {
+      A: [
+        ["1", "2"],
+        ["3", "4"],
+      ],
+      B: [
+        ["5", "6"],
+        ["7", "8"],
+      ],
+    };
+
+    const product = evaluateMatrixExpression("A * B", matricesByLabel);
+    const scaledProduct = evaluateMatrixExpression("2 * A * B", matricesByLabel);
+    const compactScaledProduct = evaluateMatrixExpression("2A * B", matricesByLabel);
+
+    expect(product.valid).toBe(true);
+    expect(product.result).toEqual([
+      [19, 22],
+      [43, 50],
+    ]);
+
+    expect(scaledProduct.valid).toBe(true);
+    expect(scaledProduct.result).toEqual([
+      [38, 44],
+      [86, 100],
+    ]);
+
+    expect(compactScaledProduct.valid).toBe(true);
+    expect(compactScaledProduct.result).toEqual([
+      [38, 44],
+      [86, 100],
+    ]);
+  });
+
   it("supports nested unary negation (e.g. A - -B)", () => {
     const matricesByLabel = {
       A: [
@@ -181,6 +216,25 @@ describe("matrixUtils", () => {
     expect(result.errors).toEqual(
       expect.arrayContaining([
         expect.stringContaining("same dimensions"),
+      ])
+    );
+  });
+
+  it("rejects matrix multiplication with incompatible dimensions", () => {
+    const matricesByLabel = {
+      A: [
+        ["1", "2"],
+        ["3", "4"],
+      ],
+      B: [["5", "6"]],
+    };
+
+    const result = evaluateMatrixExpression("A * B", matricesByLabel);
+
+    expect(result.valid).toBe(false);
+    expect(result.errors).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining("must equal"),
       ])
     );
   });
