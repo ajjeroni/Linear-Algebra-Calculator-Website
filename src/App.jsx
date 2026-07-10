@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import createMatrixModule from "./wasm/matrix.js";
 import "./App.css";
 import {
@@ -22,6 +22,7 @@ function App() {
   const [errors, setErrors] = useState([]);
   const [result, setResult] = useState(null);
   const [expression, setExpression] = useState("A + B");
+  const expressionInputRef = useRef(null);
 
   useEffect(() => {
     createMatrixModule()
@@ -39,6 +40,30 @@ function App() {
 
   const clearResult = () => {
     setResult(null);
+  };
+
+  const insertTransposeSnippet = () => {
+    const input = expressionInputRef.current;
+    const currentExpression = expression;
+
+    if (!input) {
+      setExpression(`${currentExpression}^T`);
+      clearResult();
+      return;
+    }
+
+    const start = input.selectionStart ?? currentExpression.length;
+    const end = input.selectionEnd ?? currentExpression.length;
+    const nextExpression = `${currentExpression.slice(0, start)}^T${currentExpression.slice(end)}`;
+
+    setExpression(nextExpression);
+    clearResult();
+
+    window.requestAnimationFrame(() => {
+      input.focus();
+      const cursorPosition = start + 2;
+      input.setSelectionRange(cursorPosition, cursorPosition);
+    });
   };
 
   const getDisplayLabel = (matrixIndex) => {
@@ -122,7 +147,11 @@ function App() {
       matrices.map((_, index) => [getExpressionLabel(index), matrices[index]])
     );
 
-    const expressionResult = evaluateMatrixExpression(expression, matricesByLabel);
+    const expressionResult = evaluateMatrixExpression(
+      expression,
+      matricesByLabel,
+      matrixModule
+    );
 
     if (!expressionResult.valid) {
       setErrors(expressionResult.errors);
@@ -138,7 +167,7 @@ function App() {
     <main className="matrix-app">
       <h1>Matrix Algebra Calculator</h1>
       <p className="intro">
-        Enter between {MIN_MATRICES} and {MAX_MATRICES} matrices, then evaluate expressions such as A + B, 2A - 3B, A * B, or 2 * A * B. Dimensions must stay between {MIN_DIMENSION} and {MAX_DIMENSION}.
+        Enter between {MIN_MATRICES} and {MAX_MATRICES} matrices, then evaluate expressions such as A + B, 2A - 3B, A * B, or 2 * A * B. Dimensions must stay between {MIN_DIMENSION} and {MAX_DIMENSION}. Transpose is supported with A^T.
       </p>
 
       <div className="status-line">
@@ -244,17 +273,26 @@ function App() {
 
         <label className="expression-field">
           Algebra Expression
-          <input
-            type="text"
-            value={expression}
-            onChange={(event) => {
-              setExpression(event.target.value);
-              clearResult();
-            }}
-            placeholder="A + B"
-            className="expression-input"
-            aria-label="Matrix algebra expression"
-          />
+          <div className="expression-input-row">
+            <input
+              ref={expressionInputRef}
+              type="text"
+              value={expression}
+              onChange={(event) => {
+                setExpression(event.target.value);
+                clearResult();
+              }}
+              placeholder="A + B"
+              className="expression-input"
+              aria-label="Matrix algebra expression"
+            />
+            <button type="button" className="transpose-button" onClick={insertTransposeSnippet}>
+              A^T
+            </button>
+          </div>
+          <p className="expression-hint">
+            Tip: transpose a matrix with A^T. Try: A^T, A^T + B, or A^T * B.
+          </p>
         </label>
 
         <button type="submit" className="primary-button">

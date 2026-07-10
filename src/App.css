@@ -255,10 +255,17 @@
   gap: 10px;
   font-weight: 500;
   color: var(--text-h);
-  max-width: 360px;
+  max-width: 420px;
+}
+
+.expression-input-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
 }
 
 .expression-input {
+  flex: 1;
   width: 100%;
   box-sizing: border-box;
   border: 1px solid var(--border);
@@ -267,6 +274,23 @@
   background: white;
   font-size: 16px;
   color: #000;
+}
+
+.transpose-button {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 12px 14px;
+  background: var(--accent-bg);
+  color: var(--accent);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.expression-hint {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-s);
 }
 
 .matrix-count-row {

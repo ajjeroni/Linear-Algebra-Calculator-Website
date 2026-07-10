@@ -211,6 +211,58 @@ export function multiplyMatrixByScalar(matrix, scalar) {
   return matrix.map((row) => row.map((value) => value * scalar));
 }
 
+function transposeMatrix(matrix, matrixModule = null) {
+  if (matrixModule && typeof matrixModule.createMatrix === "function") {
+    const rows = matrix.length;
+    const cols = matrix[0]?.length ?? 0;
+    const wasmMatrix = matrixModule.createMatrix(rows, cols);
+    let transposedMatrix = null;
+
+    try {
+      matrix.forEach((row, rowIndex) => {
+        row.forEach((value, colIndex) => {
+          if (typeof wasmMatrix.setElement === "function") {
+            wasmMatrix.setElement(rowIndex, colIndex, Number(value));
+          }
+        });
+      });
+
+      if (typeof wasmMatrix.transpose === "function") {
+        transposedMatrix = wasmMatrix.transpose();
+        const transposedRows = cols;
+        const transposedCols = rows;
+
+        return Array.from({ length: transposedRows }, (_, rowIndex) =>
+          Array.from({ length: transposedCols }, (_, colIndex) =>
+            Number(transposedMatrix.getElement(rowIndex, colIndex))
+          )
+        );
+      }
+
+      return matrix[0].map((_, colIndex) => matrix.map((row) => row[colIndex]));
+    } finally {
+      if (transposedMatrix && typeof transposedMatrix.delete === "function") {
+        try {
+          transposedMatrix.delete();
+        } catch {
+          /* ignore deletion errors */
+        }
+      }
+
+      if (wasmMatrix && typeof wasmMatrix.delete === "function") {
+        try {
+          wasmMatrix.delete();
+        } catch {
+          /* ignore deletion errors */
+        }
+      }
+    }
+  }
+
+  const transposed = matrix[0].map((_, colIndex) => matrix.map((row) => row[colIndex]));
+  return transposed;
+}
+
 function tokenizeMatrixExpression(expression) {
   const tokens = [];
   let index = 0;
@@ -223,7 +275,7 @@ function tokenizeMatrixExpression(expression) {
       continue;
     }
 
-    if (["+", "-", "*", "(", ")"].includes(character)) {
+    if (["+", "-", "*", "(", ")", "^"].includes(character)) {
       tokens.push(character);
       index += 1;
       continue;
@@ -243,7 +295,7 @@ function tokenizeMatrixExpression(expression) {
     if (/[A-Za-z]/.test(character)) {
       let label = "";
       while (index < expression.length && /[A-Za-z]/.test(expression[index])) {
-        label += expression[index].toUpperCase();
+        label += expression[index];
         index += 1;
       }
 
@@ -342,7 +394,12 @@ class MatrixExpressionParser {
       this.consume("(");
       const expression = this.parseExpression();
       this.consume(")");
-      return expression;
+      return this.parsePostfixTranspose(expression);
+    }
+
+    if (token === "^") {
+      this.consume("^");
+      throw new Error("Transpose syntax must be applied to a matrix, such as A^T.");
     }
 
     if (token !== undefined && /^\d+(?:\.\d+)?$/.test(String(token))) {
@@ -350,16 +407,32 @@ class MatrixExpressionParser {
       return { type: "number", value: Number(token) };
     }
 
-    if (token !== undefined && /^[A-Z]+$/.test(String(token))) {
+    if (token !== undefined && /^[A-Za-z]+$/.test(String(token))) {
       this.consume();
-      return { type: "matrix", label: String(token) };
+      const label = String(token).toUpperCase();
+      return this.parsePostfixTranspose({ type: "matrix", label });
     }
 
     throw new Error(`Unexpected token "${token ?? "end of expression"}".`);
   }
+
+  parsePostfixTranspose(node) {
+    if (this.peek() === "^") {
+      this.consume("^");
+      const transposeToken = this.consume();
+
+      if (transposeToken !== "T") {
+        throw new Error("Transpose syntax must use ^T.");
+      }
+
+      return { type: "transpose", expression: node };
+    }
+
+    return node;
+  }
 }
 
-function evaluateExpressionNode(node, matricesByLabel) {
+function evaluateExpressionNode(node, matricesByLabel, matrixModule = null) {
   if (node.type === "number") {
     return { value: node.value, isMatrix: false };
   }
@@ -374,8 +447,18 @@ function evaluateExpressionNode(node, matricesByLabel) {
     return { value: normalizeMatrix(matrix), isMatrix: true };
   }
 
+  if (node.type === "transpose") {
+    const operand = evaluateExpressionNode(node.expression, matricesByLabel, matrixModule);
+
+    if (!operand.isMatrix) {
+      throw new Error("Transpose only supports matrix operands.");
+    }
+
+    return { value: transposeMatrix(operand.value, matrixModule), isMatrix: true };
+  }
+
   if (node.type === "unary") {
-    const operand = evaluateExpressionNode(node.expression, matricesByLabel);
+    const operand = evaluateExpressionNode(node.expression, matricesByLabel, matrixModule);
 
     if (operand.isMatrix) {
       return { value: multiplyMatrixByScalar(operand.value, -1), isMatrix: true };
@@ -385,8 +468,8 @@ function evaluateExpressionNode(node, matricesByLabel) {
   }
 
   if (node.type === "binary") {
-    const left = evaluateExpressionNode(node.left, matricesByLabel);
-    const right = evaluateExpressionNode(node.right, matricesByLabel);
+    const left = evaluateExpressionNode(node.left, matricesByLabel, matrixModule);
+    const right = evaluateExpressionNode(node.right, matricesByLabel, matrixModule);
 
     if (node.operator === "*") {
       if (left.isMatrix && right.isMatrix) {
@@ -424,7 +507,7 @@ function evaluateExpressionNode(node, matricesByLabel) {
   throw new Error("Unsupported expression.");
 }
 
-export function evaluateMatrixExpression(expression, matricesByLabel = {}) {
+export function evaluateMatrixExpression(expression, matricesByLabel = {}, matrixModule = null) {
   if (typeof expression !== "string" || expression.trim() === "") {
     return { valid: false, errors: ["Please enter an algebra expression."], result: null };
   }
@@ -435,7 +518,7 @@ export function evaluateMatrixExpression(expression, matricesByLabel = {}) {
     const tokens = tokenizeMatrixExpression(trimmedExpression);
     const parser = new MatrixExpressionParser(tokens);
     const parsedExpression = parser.parse();
-    const result = evaluateExpressionNode(parsedExpression, matricesByLabel);
+    const result = evaluateExpressionNode(parsedExpression, matricesByLabel, matrixModule);
 
     if (!result.isMatrix) {
       return { valid: false, errors: ["The expression must resolve to a matrix."], result: null };

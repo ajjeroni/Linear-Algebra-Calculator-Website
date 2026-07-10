@@ -144,6 +144,137 @@ describe("matrixUtils", () => {
     ]);
   });
 
+  it("evaluates transpose expressions and combinations", () => {
+    const matricesByLabel = {
+      A: [
+        ["1", "2"],
+        ["3", "4"],
+      ],
+      B: [
+        ["5", "6"],
+        ["7", "8"],
+      ],
+    };
+
+    const transposeResult = evaluateMatrixExpression("A^T", matricesByLabel);
+    const sumResult = evaluateMatrixExpression("A^T + B", matricesByLabel);
+    const productResult = evaluateMatrixExpression("A^T * B", matricesByLabel);
+    const scaledDifferenceResult = evaluateMatrixExpression("2A^T - B", matricesByLabel);
+
+    expect(transposeResult.valid).toBe(true);
+    expect(transposeResult.result).toEqual([
+      [1, 3],
+      [2, 4],
+    ]);
+
+    expect(sumResult.valid).toBe(true);
+    expect(sumResult.result).toEqual([
+      [6, 9],
+      [9, 12],
+    ]);
+
+    expect(productResult.valid).toBe(true);
+    expect(productResult.result).toEqual([
+      [26, 30],
+      [38, 44],
+    ]);
+
+    expect(scaledDifferenceResult.valid).toBe(true);
+    expect(scaledDifferenceResult.result).toEqual([
+      [-3, 0],
+      [-3, 0],
+    ]);
+  });
+
+  it("rejects malformed transpose syntax and lowercase transpose syntax", () => {
+    const matricesByLabel = {
+      A: [
+        ["1", "2"],
+        ["3", "4"],
+      ],
+    };
+
+    const startWithTranspose = evaluateMatrixExpression("^T", matricesByLabel);
+    const incompleteTranspose = evaluateMatrixExpression("A^", matricesByLabel);
+    const lowercaseTranspose = evaluateMatrixExpression("A^t", matricesByLabel);
+
+    expect(startWithTranspose.valid).toBe(false);
+    expect(startWithTranspose.errors).toEqual(
+      expect.arrayContaining([expect.stringContaining("Transpose")])
+    );
+
+    expect(incompleteTranspose.valid).toBe(false);
+    expect(incompleteTranspose.errors).toEqual(
+      expect.arrayContaining([expect.stringContaining("Transpose")])
+    );
+
+    expect(lowercaseTranspose.valid).toBe(false);
+    expect(lowercaseTranspose.errors).toEqual(
+      expect.arrayContaining([expect.stringContaining("Transpose")])
+    );
+  });
+
+  it("cleans up wasm matrices after transpose evaluations", () => {
+    const matricesByLabel = {
+      A: [
+        ["1", "2"],
+        ["3", "4"],
+      ],
+    };
+
+    let deleteCalls = 0;
+    const matrixModule = {
+      createMatrix: () => {
+        const values = [];
+        return {
+          setElement: function (rowIndex, colIndex, value) {
+            values[rowIndex] = values[rowIndex] || [];
+            values[rowIndex][colIndex] = value;
+          },
+          transpose: function () {
+            return {
+              getElement: function (rowIndex, colIndex) {
+                return values[colIndex]?.[rowIndex] ?? 0;
+              },
+              delete: function () {
+                deleteCalls += 1;
+              },
+            };
+          },
+          delete: function () {
+            deleteCalls += 1;
+          },
+        };
+      },
+    };
+
+    const result = evaluateMatrixExpression("A^T", matricesByLabel, matrixModule);
+
+    expect(result.valid).toBe(true);
+    expect(result.result).toEqual([
+      [1, 3],
+      [2, 4],
+    ]);
+    expect(deleteCalls).toBe(2);
+  });
+
+  it("rejects dimension errors after transposing", () => {
+    const matricesByLabel = {
+      A: [
+        ["1", "2"],
+        ["3", "4"],
+      ],
+      B: [["5", "6"]],
+    };
+
+    const result = evaluateMatrixExpression("A^T + B", matricesByLabel);
+
+    expect(result.valid).toBe(false);
+    expect(result.errors).toEqual(
+      expect.arrayContaining([expect.stringContaining("same dimensions")])
+    );
+  });
+
   it("evaluates matrix multiplication expressions", () => {
     const matricesByLabel = {
       A: [
