@@ -1,10 +1,10 @@
 # Linear Algebra Calculator Website
 
-A browser-based matrix algebra calculator built with React, JavaScript, and a C++/WebAssembly backend. The app lets you enter matrices, choose dimensions, and evaluate algebraic expressions such as A + B, 2A - 3B, or -A + B.
+A browser-based matrix algebra calculator built with React, JavaScript, and a C++/WebAssembly backend. The app lets you enter matrices, choose dimensions, and evaluate algebraic expressions such as A + B, 2A - 3B, A * B, or A^T.
 
 ## Overview
 
-This project combines a modern React interface with matrix validation and expression evaluation logic in JavaScript. It also includes a WebAssembly-enabled matrix layer for future performance-focused operations while keeping the UI simple and interactive.
+This project combines a React interface with matrix validation and expression evaluation logic in JavaScript. It also includes a WebAssembly-enabled matrix layer for performance-focused operations while keeping the UI simple and interactive.
 
 ## What the app can do
 
@@ -15,9 +15,19 @@ This project combines a modern React interface with matrix validation and expres
   - addition and subtraction
   - scalar multiplication
   - unary negation
+  - matrix multiplication
+  - transpose with `^T` syntax
   - parentheses
 - Validate required cells, invalid values, and incompatible dimensions
 - Display the resulting matrix in the UI
+- Insert transpose shorthand quickly with the built-in A^T button
+
+## New features
+
+- Added transpose support with `A^T`
+- Added matrix multiplication for expressions such as `A * B`
+- Added support for more algebraic expressions, including scalar-matrix combinations
+- Improved validation for expression errors and dimension mismatches
 
 ## Example expressions
 
@@ -25,6 +35,10 @@ This project combines a modern React interface with matrix validation and expres
 - 2A - 3B
 - -A + B
 - (A + B) * 2
+- A * B
+- A^T
+- A^T + B
+- A^T * B
 
 ## Tech stack
 
