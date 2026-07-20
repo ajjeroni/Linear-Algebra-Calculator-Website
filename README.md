@@ -6,6 +6,10 @@ A browser-based matrix algebra calculator built with React, JavaScript, and a C+
 
 This project combines a React interface with matrix validation and expression evaluation logic in JavaScript. It also includes a WebAssembly-enabled matrix layer for performance-focused operations while keeping the UI simple and interactive.
 
+## Check It Out
+
+[Matrix Algebra Calculator](https://linear-algebra-calculator-website.vercel.app)
+
 ## What the app can do
 
 - Create between 1 and 5 matrices
