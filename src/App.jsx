@@ -76,6 +76,45 @@ function App() {
     return labels[matrixIndex] ?? `M${matrixIndex + 1}`;
   };
 
+  const updateExpressionAfterDeletion = (currentExpression, deletedIndex) => {
+    const labels = ["A", "B", "C", "D", "E"];
+    let updatedExpression = currentExpression;
+
+    // Remove the deleted matrix reference with optional transpose suffix (case-insensitive)
+    // Handles: B, b, B^T, b^t, etc.
+    const deletedLabel = labels[deletedIndex];
+    const deleteRegex = new RegExp(`\\b${deletedLabel}\\b(?:\\s*\\^\\s*T)?`, "gi");
+    updatedExpression = updatedExpression.replace(deleteRegex, "");
+
+    // Shift labels for matrices after the deleted one (case-insensitive)
+    for (let i = deletedIndex + 1; i < labels.length; i++) {
+      const oldLabel = labels[i];
+      const newLabel = labels[i - 1];
+      const regex = new RegExp(`\\b${oldLabel}\\b`, "gi");
+      updatedExpression = updatedExpression.replace(regex, newLabel);
+    }
+
+    // Clean up invalid syntax left by deletion
+    updatedExpression = updatedExpression
+      // Collapse consecutive operators (e.g., "+ -" becomes "+")
+      .replace(/([+\-*])\s*[+\-*]+/g, "$1")
+      // Remove leading operators/spaces inside parentheses (handles "(* B)" or "(+ C)")
+      .replace(/\(\s*[+\-*\s]+/g, "(")
+      // Remove trailing operators/spaces before closing parentheses
+      .replace(/[+\-*\s]+\)/g, ")")
+      // Remove empty parentheses
+      .replace(/\(\s*\)/g, "")
+      // Collapse multiple consecutive spaces
+      .replace(/\s+/g, " ")
+      // Remove leading operators and spaces
+      .replace(/^\s*[+\-*\s]*/, "")
+      // Remove trailing operators and spaces
+      .replace(/\s*[+\-*\s]*$/, "")
+      .trim();
+
+    return updatedExpression;
+  };
+
   const handleRowsChange = (event) => {
     const nextRows = Number(event.target.value);
     setRows(nextRows);
@@ -125,12 +164,19 @@ function App() {
     handleMatrixCountChange(matrixCount + 1);
   };
 
-  const handleRemoveMatrix = () => {
+  const handleRemoveMatrixByIndex = (matrixIndex) => {
     if (matrixCount <= MIN_MATRICES) {
       return;
     }
 
-    handleMatrixCountChange(matrixCount - 1);
+    setMatrices((current) =>
+      current.filter((_, idx) => idx !== matrixIndex)
+    );
+    setMatrixCount(matrixCount - 1);
+    setExpression((prevExpression) =>
+      updateExpressionAfterDeletion(prevExpression, matrixIndex)
+    );
+    clearResult();
   };
 
   const handleSubmit = (event) => {
@@ -208,29 +254,43 @@ function App() {
         </div>
 
         <div className="control-row matrix-count-row">
-          <button
-            type="button"
-            onClick={handleRemoveMatrix}
-            disabled={matrixCount <= MIN_MATRICES}
-          >
-            Remove matrix
-          </button>
           <span>
             {matrixCount} matrix{matrixCount === 1 ? "" : "es"}
           </span>
-          <button
-            type="button"
-            onClick={handleAddMatrix}
-            disabled={matrixCount >= MAX_MATRICES}
-          >
-            Add matrix
-          </button>
         </div>
 
         <div className="matrices-grid">
-          {matrices.map((matrix, matrixIndex) => (
+          {matrices.map((matrix, matrixIndex) => {
+            const isRightmost = matrixIndex === matrices.length - 1;
+            return (
             <section key={matrixIndex} className="matrix-card">
-              <h2>{getDisplayLabel(matrixIndex)}</h2>
+              <div className="matrix-card-header">
+                <h2>{getDisplayLabel(matrixIndex)}</h2>
+                <div className="matrix-card-actions">
+                  {isRightmost && matrixCount < MAX_MATRICES && (
+                    <button
+                      type="button"
+                      className="matrix-add-button"
+                      onClick={handleAddMatrix}
+                      title="Add matrix"
+                      aria-label="Add matrix"
+                    >
+                      +
+                    </button>
+                  )}
+                  {matrixCount > MIN_MATRICES && (
+                    <button
+                      type="button"
+                      className="matrix-delete-button"
+                      onClick={() => handleRemoveMatrixByIndex(matrixIndex)}
+                      title="Delete matrix"
+                      aria-label={`Delete ${getDisplayLabel(matrixIndex)}`}
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
+              </div>
               <div className="matrix-table">
                 {matrix.map((row, rowIndex) => (
                   <div className="matrix-row" key={rowIndex}>
@@ -257,7 +317,8 @@ function App() {
                 ))}
               </div>
             </section>
-          ))}
+            );
+          })}
         </div>
 
         {errors.length > 0 && (

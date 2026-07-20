@@ -352,11 +352,83 @@
   border: 1px solid var(--border);
   border-radius: 20px;
   background: var(--code-bg);
+  position: relative;
+}
+
+.matrix-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+  gap: 12px;
 }
 
 .matrix-card h2 {
-  margin: 0 0 14px;
+  margin: 0;
   font-size: 20px;
+  flex: 1;
+}
+
+.matrix-card-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.matrix-delete-button {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 8px;
+  background: #dc3545;
+  color: white;
+  font-size: 24px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.1s ease;
+  padding: 0;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.matrix-delete-button:hover {
+  background: #c82333;
+  transform: scale(1.05);
+}
+
+.matrix-delete-button:active {
+  transform: scale(0.95);
+}
+
+.matrix-add-button {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 8px;
+  background: var(--accent);
+  color: white;
+  font-size: 22px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.1s ease;
+  padding: 0;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.matrix-add-button:hover {
+  opacity: 0.9;
+  transform: scale(1.05);
+}
+
+.matrix-add-button:active {
+  transform: scale(0.95);
 }
 
 .matrix-table {
