@@ -1,6 +1,6 @@
 export const MIN_DIMENSION = 1;
 export const MAX_DIMENSION = 5;
-export const MIN_MATRICES = 2;
+export const MIN_MATRICES = 1;
 export const MAX_MATRICES = 5;
 
 export function createDefaultMatrices(count, rows, cols) {

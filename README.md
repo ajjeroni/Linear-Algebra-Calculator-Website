@@ -8,7 +8,7 @@ This project combines a React interface with matrix validation and expression ev
 
 ## What the app can do
 
-- Create between 2 and 5 matrices
+- Create between 1 and 5 matrices
 - Set matrix dimensions between 1 and 5 rows/columns
 - Fill in matrix values directly in the browser
 - Evaluate expressions using:

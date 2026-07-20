@@ -396,6 +396,20 @@ describe("matrixUtils", () => {
     );
   });
 
+  it("accepts one matrix when the minimum matrix count is one", () => {
+    const matrices = [
+      [
+        ["1", "2"],
+        ["3", "4"],
+      ],
+    ];
+
+    const validation = validateMatrices(2, 2, matrices);
+
+    expect(validation.valid).toBe(true);
+    expect(validation.errors).toHaveLength(0);
+  });
+
   it("validates only matrices referenced by the expression", () => {
     const matrices = [
       [
