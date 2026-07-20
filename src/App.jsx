@@ -42,26 +42,26 @@ function App() {
     setResult(null);
   };
 
-  const insertTransposeSnippet = () => {
+  const insertExpressionSnippet = (snippet) => {
     const input = expressionInputRef.current;
     const currentExpression = expression;
 
     if (!input) {
-      setExpression(`${currentExpression}^T`);
+      setExpression(`${currentExpression}${snippet}`);
       clearResult();
       return;
     }
 
     const start = input.selectionStart ?? currentExpression.length;
     const end = input.selectionEnd ?? currentExpression.length;
-    const nextExpression = `${currentExpression.slice(0, start)}^T${currentExpression.slice(end)}`;
+    const nextExpression = `${currentExpression.slice(0, start)}${snippet}${currentExpression.slice(end)}`;
 
     setExpression(nextExpression);
     clearResult();
 
     window.requestAnimationFrame(() => {
       input.focus();
-      const cursorPosition = start + 2;
+      const cursorPosition = start + snippet.length;
       input.setSelectionRange(cursorPosition, cursorPosition);
     });
   };
@@ -227,17 +227,6 @@ function App() {
           </button>
         </div>
 
-        {errors.length > 0 && (
-          <div className="error-box" role="alert">
-            <strong>Fix the following:</strong>
-            <ul>
-              {errors.map((error, index) => (
-                <li key={index}>{error}</li>
-              ))}
-            </ul>
-          </div>
-        )}
-
         <div className="matrices-grid">
           {matrices.map((matrix, matrixIndex) => (
             <section key={matrixIndex} className="matrix-card">
@@ -271,6 +260,17 @@ function App() {
           ))}
         </div>
 
+        {errors.length > 0 && (
+          <div className="error-box" role="alert">
+            <strong>Fix the following:</strong>
+            <ul>
+              {errors.map((error, index) => (
+                <li key={index}>{error}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
         <label className="expression-field">
           Algebra Expression
           <div className="expression-input-row">
@@ -286,12 +286,23 @@ function App() {
               className="expression-input"
               aria-label="Matrix algebra expression"
             />
-            <button type="button" className="transpose-button" onClick={insertTransposeSnippet}>
-              A^T
-            </button>
+            <div className="expression-actions">
+              <button type="button" className="expression-action-button" onClick={() => insertExpressionSnippet(" + ")}>
+                +
+              </button>
+              <button type="button" className="expression-action-button" onClick={() => insertExpressionSnippet(" - ")}>
+                -
+              </button>
+              <button type="button" className="expression-action-button" onClick={() => insertExpressionSnippet(" * ")}>
+                *
+              </button>
+              <button type="button" className="expression-action-button transpose-button" onClick={() => insertExpressionSnippet("^T")}>
+                A^T
+              </button>
+            </div>
           </div>
           <p className="expression-hint">
-            Tip: transpose a matrix with A^T. Try: A^T, A^T + B, or A^T * B.
+            Tip: use the operator buttons or type expressions manually. Try A^T, A^T + B, or A^T * B.
           </p>
         </label>
 

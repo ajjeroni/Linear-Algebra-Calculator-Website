@@ -261,7 +261,8 @@
 .expression-input-row {
   display: flex;
   gap: 10px;
-  align-items: center;
+  align-items: flex-start;
+  flex-wrap: wrap;
 }
 
 .expression-input {
@@ -276,6 +277,13 @@
   color: #000;
 }
 
+.expression-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.expression-action-button,
 .transpose-button {
   border: 1px solid var(--border);
   border-radius: 14px;
